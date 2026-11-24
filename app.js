@@ -50,7 +50,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function loadAllQuestions() {
   const userQs = getUserQuestions();
-  allQuestions = [...NHB_QUESTIONS, ...userQs];
+  const qbQs = (typeof QB_QUESTIONS !== 'undefined') ? QB_QUESTIONS : [];
+  allQuestions = [...NHB_QUESTIONS, ...qbQs, ...userQs];
+}
+
+// Which IAC event (or Quiz Bowl) a question belongs to; older entries only carry Bee/Bowl
+function eventOf(q) {
+  if (q.event) return q.event;
+  if (q.competition === 'Quiz Bowl') return 'Quiz Bowl';
+  if (q.competition === 'Bowl') return 'History Bowl';
+  if (q.competition === 'Bee') return 'History Bee';
+  return 'User Added';
+}
+
+// ── Non-IAC (qbreader) data: loaded on demand to keep the page fast ──
+let qbLoadPromise = null;
+function needsQb() {
+  return document.getElementById('non-iac-toggle').checked || getCompFilter() === 'Quiz Bowl';
+}
+function ensureQbLoaded() {
+  if (typeof QB_QUESTIONS !== 'undefined') return Promise.resolve();
+  if (!qbLoadPromise) {
+    const status = document.getElementById('qb-status');
+    if (status) status.textContent = '(loading…)';
+    qbLoadPromise = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'questions-qbreader.js';
+      s.onload = () => {
+        loadAllQuestions();
+        renderBrowseCount();
+        browseRendered = false;
+        if (status) status.textContent = '';
+        resolve();
+      };
+      s.onerror = () => {
+        qbLoadPromise = null;
+        if (status) status.textContent = '(failed to load)';
+        reject(new Error('could not load questions-qbreader.js'));
+      };
+      document.head.appendChild(s);
+    });
+  }
+  return qbLoadPromise;
 }
 
 function getUserQuestions() {
@@ -89,12 +130,16 @@ function getCompFilter() {
 function runSearch() {
   const keyword = document.getElementById('search-input').value.trim();
   if (!keyword) return;
+  if (needsQb() && typeof QB_QUESTIONS === 'undefined') {
+    ensureQbLoaded().then(runSearch, () => {});
+    return;
+  }
 
   const answerOnly = document.getElementById('answer-only-toggle').checked;
   const showClues = document.getElementById('clue-analysis-toggle').checked;
   const compFilter = getCompFilter();
 
-  const results = searchQuestions(keyword, answerOnly, compFilter);
+  const results = searchQuestions(keyword, answerOnly, compFilter, getLevelFilter());
   currentResults = results;
 
   document.getElementById('results-area').classList.remove('hidden');
@@ -120,12 +165,23 @@ function clearSearch() {
   currentResults = [];
 }
 
-function searchQuestions(keyword, answerOnly, compFilter) {
+function getLevelFilter() {
+  const checked = document.querySelector('input[name="level-filter"]:checked');
+  return checked ? checked.value : 'all';
+}
+
+function searchQuestions(keyword, answerOnly, compFilter, levelFilter) {
   const kw = keyword.toLowerCase();
+  const includeNonIac = document.getElementById('non-iac-toggle').checked;
   return allQuestions.filter(q => {
-    // Competition filter
-    if (compFilter === 'Bee' && q.competition !== 'Bee') return false;
-    if (compFilter === 'Bowl' && q.competition !== 'Bowl') return false;
+    // Non-IAC (qbreader quiz bowl) questions only when opted in
+    // (picking the "Quiz Bowl" competition filter counts as opting in)
+    if (!includeNonIac && compFilter !== 'Quiz Bowl' && q.competition === 'Quiz Bowl') return false;
+    // Competition / event filter
+    if (compFilter !== 'all' && eventOf(q) !== compFilter) return false;
+    // Level filter
+    if (levelFilter === 'ms' && q.level !== 'Middle School') return false;
+    if (levelFilter === 'hs' && q.level === 'Middle School') return false;
     // Text filter
     if (answerOnly) {
       return q.answer.toLowerCase().includes(kw);
@@ -183,8 +239,14 @@ function buildQuestionCard(q, displayNum, keyword) {
 
   const badges = [];
   if (q.jv_specific || q.jv) badges.push('<span class="q-badge badge-jv">JV Finals</span>');
-  if (q.competition === 'Bowl') badges.push('<span class="q-badge badge-bowl">Bowl</span>');
-  if (q.competition === 'Bee') badges.push('<span class="q-badge badge-bee">Bee</span>');
+  const ev = eventOf(q);
+  if (ev === 'History Bowl') badges.push('<span class="q-badge badge-bowl">History Bowl</span>');
+  if (ev === 'History Bee') badges.push('<span class="q-badge badge-bee">History Bee</span>');
+  if (ev === 'US History Bee') badges.push('<span class="q-badge badge-ushb">US History Bee</span>');
+  if (ev === 'Academic Bee') badges.push('<span class="q-badge badge-ab">Academic Bee</span>');
+  if (ev === 'Quiz Bowl') badges.push('<span class="q-badge badge-qb">Quiz Bowl</span>');
+  if (q.level === 'Middle School') badges.push('<span class="q-badge badge-ms">Middle School</span>');
+  if (q.level === 'High School') badges.push('<span class="q-badge badge-hs">High School</span>');
   if (q.user_added) badges.push('<span class="q-badge badge-user">User Added</span>');
 
   card.innerHTML = `

@@ -40,6 +40,10 @@
           <input type="checkbox" id="clue-analysis-toggle" />
           <span class="toggle-text">Show <strong>frequent clues</strong> analysis</span>
         </label>
+        <label class="toggle-label">
+          <input type="checkbox" id="non-iac-toggle" />
+          <span class="toggle-text">Include <strong>non-IAC questions</strong> (quiz bowl, via qbreader) <span id="qb-status" class="qb-status"></span></span>
+        </label>
       </div>
       <div class="filter-row">
         <span class="filter-label">Competition:</span>
@@ -47,10 +51,31 @@
           <input type="radio" name="comp-filter" value="all" checked /> All
         </label>
         <label class="filter-chip">
-          <input type="radio" name="comp-filter" value="Bee" /> Bee only
+          <input type="radio" name="comp-filter" value="History Bee" /> History Bee
         </label>
         <label class="filter-chip">
-          <input type="radio" name="comp-filter" value="Bowl" /> Bowl only (Nationals)
+          <input type="radio" name="comp-filter" value="US History Bee" /> US History Bee
+        </label>
+        <label class="filter-chip">
+          <input type="radio" name="comp-filter" value="Academic Bee" /> Academic Bee (history only)
+        </label>
+        <label class="filter-chip">
+          <input type="radio" name="comp-filter" value="History Bowl" /> History Bowl
+        </label>
+        <label class="filter-chip">
+          <input type="radio" name="comp-filter" value="Quiz Bowl" /> Quiz Bowl (qbreader)
+        </label>
+      </div>
+      <div class="filter-row">
+        <span class="filter-label">Level:</span>
+        <label class="filter-chip">
+          <input type="radio" name="level-filter" value="all" checked /> All
+        </label>
+        <label class="filter-chip">
+          <input type="radio" name="level-filter" value="hs" /> High School / IAC
+        </label>
+        <label class="filter-chip">
+          <input type="radio" name="level-filter" value="ms" /> Middle School
         </label>
       </div>
     </section>
@@ -117,7 +142,7 @@
   </main>
 
   <footer>
-    <p>Questions sourced from <a href="https://www.iacompetitions.com/resources-national-history-bee/" target="_blank" rel="noopener">iacompetitions.com</a>. User-added questions stored locally in your browser.</p>
+    <p>Questions sourced from <a href="https://www.iacompetitions.com/resources-national-history-bee/" target="_blank" rel="noopener">iacompetitions.com</a> and <a href="https://www.qbreader.org/" target="_blank" rel="noopener">qbreader.org</a>. User-added questions stored locally in your browser.</p>
   </footer>
 
   <script src="questions-data.js"></script>
